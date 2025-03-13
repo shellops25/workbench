@@ -10,8 +10,18 @@ logger = logging.getLogger()
 def lambda_handler(event, context):
     ssm = boto3.client("ssm")
 
-    # Get the command from the event payload, default to "uptime"
-    command_to_run = event.get("command", "uptime")
+    # Get command and optional arguments from the event payload
+    base_command = event.get("command", "uptime")  # Default command: "uptime"
+    arg1 = event.get("arg1", "")  # Default empty if not provided
+    arg2 = event.get("arg2", "")  # Default empty if not provided
+
+    # Construct the full command
+    command_to_run = base_command
+    if arg1:
+        command_to_run += f" {arg1}"
+    if arg2:
+        command_to_run += f" {arg2}"
+
     instance_id = "i-0f6051fe2fbebc7c7"  # Replace with your EC2 Instance ID
 
     logger.info(f"Executing command: {command_to_run} on instance {instance_id}")
@@ -21,13 +31,13 @@ def lambda_handler(event, context):
         response = ssm.send_command(
             InstanceIds=[instance_id],
             DocumentName="AWS-RunShellScript",
-            Parameters={"commands": [command_to_run]}
+            Parameters={"commands": [command_to_run]}  # Ensures the command is properly formatted
         )
 
         command_id = response["Command"]["CommandId"]
         logger.info(f"Command sent successfully. Command ID: {command_id}")
 
-        # Wait for the command to be registered (handle "InvocationDoesNotExist" error)
+        # Wait for command to be registered (handle "InvocationDoesNotExist" error)
         time.sleep(2)  # Initial short wait before first check
 
         # Retry up to 10 times (2-second intervals) for command execution
