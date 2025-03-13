@@ -1,0 +1,12 @@
+#!/bin/sh
+set -euo pipefail
+#export _HANDLER=test.handler
+source $(dirname "$0")/"$(echo $_HANDLER | cut -d. -f1).sh"
+echo "Starting Lambda execution" >&2
+
+# Execute the shell script to send SSM command
+#/var/task/execute_ssm.sh
+python3 /var/task/execute_ssm.py
+
+echo "SSM command executed" >&2
+
