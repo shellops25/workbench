@@ -19,6 +19,15 @@ provider "azurerm" {
   }
 }
 
+data "azurerm_resource_group" "existing" {
+  name = var.resource_group_name
+}
+
+data "azurerm_network_interface" "existing" {
+  name                = var.network_interface_name
+  resource_group_name = data.azurerm_resource_group.existing.name
+}
+
 resource "azurerm_windows_virtual_machine" "vm-windows" {
   name                = var.vm_name
   admin_username      = var.admin_username
