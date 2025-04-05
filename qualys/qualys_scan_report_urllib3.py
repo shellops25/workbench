@@ -22,7 +22,7 @@ def get_args():
 
     args = parseer.parse_args()
 
-    target_ip = args.target or os.getenv("TARGET_IP"
+    target_ip = args.target or os.getenv("TARGET_IP")
     username = args.username or os.getenv("QUALYS_USERNAME")    
     password = args.password or os.getenv("QUALYS_PASSWORD")    
 
