@@ -18,7 +18,8 @@ Clone the repo and navigate to the desired directory:
 
 ```bash
 git clone https://github.com/shellops25/workbench.git
-cd workbench/terracode-aws/projects/your-project
+cd workbench/terracode-${something}/projects/project
+# look/review before you tango
 terraform init
 terraform plan
 terraform apply
