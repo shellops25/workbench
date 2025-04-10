@@ -2,11 +2,20 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Create the encrypted S3 bucket
 resource "aws_s3_bucket" "mulesoft_bucket" {
   bucket = var.bucket_name
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
 }
 
-# Block all public access to the S3 bucket
+# Block all public access to the bucket
 resource "aws_s3_bucket_public_access_block" "block_public_access" {
   bucket = aws_s3_bucket.mulesoft_bucket.id
 
@@ -16,6 +25,7 @@ resource "aws_s3_bucket_public_access_block" "block_public_access" {
   restrict_public_buckets = true
 }
 
+# IAM Role for MuleSoft to assume via sts:AssumeRole
 resource "aws_iam_role" "mulesoft_assume_role" {
   name = var.iam_role_name
 
@@ -38,6 +48,7 @@ resource "aws_iam_role" "mulesoft_assume_role" {
   })
 }
 
+# Attach limited S3 permissions for MuleSoft
 resource "aws_iam_role_policy" "mulesoft_s3_policy" {
   name = "mulesoft-s3-access"
   role = aws_iam_role.mulesoft_assume_role.id
@@ -57,6 +68,7 @@ resource "aws_iam_role_policy" "mulesoft_s3_policy" {
   })
 }
 
+# S3 bucket policy with access rules and deny fallback
 resource "aws_s3_bucket_policy" "mulesoft_bucket_policy" {
   bucket = aws_s3_bucket.mulesoft_bucket.id
 
