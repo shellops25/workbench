@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1" # change to your region
+  region = "us-west-2"
 }
 
 # Variables (replace with actual IDs)
@@ -8,12 +8,12 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  default = ["subnet-aaaaaaaaaaaaaaa", "subnet-bbbbbbbbbbbbbbb"]
+  default = ["subnet-a, "subnet-b"]
 }
 
 variable "confluent_service_name" {
   description = "Confluent PrivateLink service name"
-  default     = "com.amazonaws.vpce.us-east-1.vpce-svc-xxxxxxxxxxxxxxxx"
+  default     = "com.amazonaws.vpce.us-east-1.vpce-svc-x"
 }
 
 # Security group for the endpoint
@@ -26,7 +26,8 @@ resource "aws_security_group" "privatelink_sg" {
     from_port   = 0
     to_port     = 65535
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Tighten this if needed
+    cidr_blocks = ["0.0.0.0/0"] 
+#  cidr_blocks = ["192.168.1.0/24", "10.2.1.0/24"]
   }
 
   egress {
@@ -34,6 +35,7 @@ resource "aws_security_group" "privatelink_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+#   cidr_blocks = ["192.168.1.0/24", "10.2.1.0/24"]
   }
 }
 
