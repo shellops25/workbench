@@ -1,72 +1,91 @@
 
-Enabling MuleSoft CloudHub 2.0 to Access AWS S3 via IAM Role
-=============================================================
+# MuleSoft CloudHub 2.0 to S3 via Private Network Setup
 
-This guide explains how to configure MuleSoft CloudHub 2.0 (CH2.0) Private Space applications to access S3 buckets in your AWS account using AWS IAM roles. This setup avoids the need for PrivateLink by using AWS's native cross-account role assumption.
+This guide walks through how to configure MuleSoft CloudHub 2.0 Private Spaces to securely access an S3 bucket in your AWS account over AWS's private network using IAM role assumption.
 
-Scope
------
+---
 
-Allow MuleSoft CH2.0 applications to write securely to an S3 bucket in your AWS account using an IAM role and the Default AWS Credentials Provider Chain.
+## Step 1: CloudHub 2.0 Configuration (MuleSoft Admin)
 
-Prerequisites
--------------
+1. Navigate to **Runtime Manager > Private Spaces**
+2. Select your **CH2.0 Private Space**
+3. Go to the **Advanced** tab
+4. Enable the **AWS Service Role**
+   - This generates a role like:
+     ```
+     arn:aws:iam::<mulesoft-account-id>:role/mulesoft-ch2-role-<region>-<space-id>
+     ```
+5. Save this role name for the next steps.
 
-- MuleSoft application deployed in CloudHub 2.0 Private Space
-- MuleSoft Private Space with AWS Service Role feature enabled
-- Access to your AWS account to create IAM roles and S3 buckets
+---
 
-Instructions
-------------------
+## Step 2: AWS IAM Configuration 
 
-1. Enable AWS Service Role in CH2.0 Private Space
+### 1. Create IAM Role to be Assumed by MuleSoft
 
-- Navigate to Anypoint Platform > Runtime Manager > Private Spaces
-- Select your Private Space
-- Go to the Advanced tab
-- Enable the AWS Service Role
-- MuleSoft will generate a unique role ARN, like:
-
-  arn:aws:iam::<mulesoft-account-id>:role/mulesoft-ch2-role-<region>-<space-id>
-
-2. Create IAM Role in Your AWS Account
-
-In your AWS account, create a new IAM role (e.g., ch2-s3-servicerole-test) that MuleSoft can assume.
-
-Trust Policy:
-
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::<MuleSoftAccountID>:role/mulesoft-ch2-role-<region>-<space-id>"
+        "AWS": "arn:aws:iam::<mulesoft-account-id>:role/mulesoft-ch2-role-<region>-<space-id>"
       },
       "Action": "sts:AssumeRole",
       "Condition": {
         "StringEquals": {
-          "sts:ExternalId": "<provided-by-mulesoft>"
+          "sts:ExternalId": "<value-provided-by-mulesoft>"
         }
       }
     }
   ]
 }
+```
 
-3. Attach S3 Access Policy to the Role
+### 2. Attach S3 Permissions to the Role
 
+```json
 {
-  "Effect": "Allow",
-  "Action": [
-    "s3:PutObject",
-    "s3:GetObject"
-  ],
-  "Resource": "arn:aws:s3:::your-bucket-name/*"
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::your-bucket-name/*"
+    }
+  ]
 }
+```
 
-4. MuleSoft S3 Connector Configuration (XML)
+### 3. (Optional) Add a Secure S3 Bucket Policy
 
-<s3:config name="Amazon_S3_Configuration2" doc:name="Amazon S3 Configuration">
+```json
+{
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": [
+    "arn:aws:s3:::your-bucket-name",
+    "arn:aws:s3:::your-bucket-name/*"
+  ],
+  "Condition": {
+    "StringNotEquals": {
+      "aws:PrincipalArn": "arn:aws:iam::<your-account-id>:role/ch2-s3-servicerole-test"
+    }
+  }
+}
+```
+
+---
+
+## Step 3: MuleSoft Developer App Configuration
+
+```xml
+<s3:config name="Amazon_S3_Configuration2" doc:name="Amazon S3 Configuration" doc:id="d72a7408-a62d-401d-a0a0-314936300bd4">
   <s3:role-connection 
     roleARN="arn:aws:iam::111122223333:role/ch2-s3-servicerole-test"
     accessKey="dummyKey"
@@ -74,33 +93,20 @@ Trust Policy:
     region="ap-southeast-2"
     tryDefaultAWSCredentialsProviderChain="true" />
 </s3:config>
+```
 
-Security Notes
---------------
+- `accessKey` and `secretKey` are dummy values
+- `tryDefaultAWSCredentialsProviderChain="true"` enables IAM role assumption from CH2.0
+- `region` should match your AWS region
 
-- This configuration uses cross-account IAM roles for secure, short-lived credential access
-- The MuleSoft service role is granted permission to assume your role, and your role is scoped to just your S3 bucket
-- No AWS access/secret keys are exposed
+---
 
-Not Supported in CloudHub 1.0
------------------------------
+## Final Checklist
 
-This method only works with CloudHub 2.0 Private Spaces. It does not apply to CloudHub 1.0 environments.
-
-Summary
--------
-
-| Capability                        | Supported |
-|----------------------------------|-----------|
-| S3 access via IAM Role           | Yes       |
-| PrivateLink to S3                | No        |
-| Requires CH2 Private Space       | Yes       |
-| Requires AWS IAM role            | Yes       |
-| Requires proxy/NLB in VPC        | No        |
-
-Reference
----------
-
-- Salesforce Knowledge Article ID: 001115331
-- Published: March 2, 2024
-- Link: https://help.salesforce.com/s/articleView?id=001115331&type=1
+| Step                      | Owner              | Status |
+|---------------------------|--------------------|--------|
+| Enable AWS Service Role   | MuleSoft Admin     | ✅      |
+| Create IAM Role in AWS    | Your AWS Team      | ✅      |
+| Attach S3 Access Policy   | Your AWS Team      | ✅      |
+| (Optional) Bucket Policy  | Your AWS Team      | 🔒 Recommended |
+| S3 Connector Config       | MuleSoft Developer | ✅      |
