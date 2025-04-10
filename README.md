@@ -7,10 +7,10 @@ This repository is a curated workspace of Terraform infrastructure, automation s
 - `lambda/` – AWS Lambda utilities and deployment logic  
 - `notes/mulesoft/` – Notes and configuration for Mulesoft integrations  
 - `qualys/` – Resources related to Qualys security tooling  
-- `terracode-aws/` – Environment-specific AWS Terraform deployments  
+- `terracode-aws/` – Project * env specific AWS Terraform deployments  
 - `terracode-aws-common/` – Reusable AWS Terraform modules  
-- `terracode-azure-common/` – Shared Azure Terraform modules  
-- `terracode-azure/projects/` – Project-specific Azure deployments
+- `terracode-azure-common/` – Reusable Azure Terraform modules  
+- `terracode-azure/projects/` – Project & env specific Azure deployments
 
 ## 🚀 Usage
 
