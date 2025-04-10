@@ -2,7 +2,42 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Create the encrypted S3 bucket
+# Logging bucket
+resource "aws_s3_bucket" "log_bucket" {
+  bucket = var.logging_bucket_name
+
+  acl = "log-delivery-write"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Allow log delivery from S3 to the logging bucket
+resource "aws_s3_bucket_policy" "log_bucket_policy" {
+  bucket = aws_s3_bucket.log_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "logging.s3.amazonaws.com"
+        },
+        Action = "s3:PutObject",
+        Resource = "${aws_s3_bucket.log_bucket.arn}/*",
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Data bucket
 resource "aws_s3_bucket" "mulesoft_bucket" {
   bucket = var.bucket_name
 
@@ -13,9 +48,13 @@ resource "aws_s3_bucket" "mulesoft_bucket" {
       }
     }
   }
+
+  logging {
+    target_bucket = aws_s3_bucket.log_bucket.id
+    target_prefix = "access-logs/"
+  }
 }
 
-# Block all public access to the bucket
 resource "aws_s3_bucket_public_access_block" "block_public_access" {
   bucket = aws_s3_bucket.mulesoft_bucket.id
 
@@ -25,7 +64,6 @@ resource "aws_s3_bucket_public_access_block" "block_public_access" {
   restrict_public_buckets = true
 }
 
-# IAM Role for MuleSoft to assume via sts:AssumeRole
 resource "aws_iam_role" "mulesoft_assume_role" {
   name = var.iam_role_name
 
@@ -48,7 +86,6 @@ resource "aws_iam_role" "mulesoft_assume_role" {
   })
 }
 
-# Attach limited S3 permissions for MuleSoft
 resource "aws_iam_role_policy" "mulesoft_s3_policy" {
   name = "mulesoft-s3-access"
   role = aws_iam_role.mulesoft_assume_role.id
@@ -68,7 +105,6 @@ resource "aws_iam_role_policy" "mulesoft_s3_policy" {
   })
 }
 
-# S3 bucket policy with access rules and deny fallback
 resource "aws_s3_bucket_policy" "mulesoft_bucket_policy" {
   bucket = aws_s3_bucket.mulesoft_bucket.id
 
