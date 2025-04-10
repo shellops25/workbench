@@ -76,11 +76,11 @@ resource "aws_s3_bucket_policy" "mulesoft_bucket_policy" {
         Principal = {
           AWS = var.ec2_instance_role_arn
         },
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject"
-        ],
-        Resource = "${aws_s3_bucket.mulesoft_bucket.arn}/*"
+        Action = "s3:*",
+        Resource = [
+          aws_s3_bucket.mulesoft_bucket.arn,
+          "${aws_s3_bucket.mulesoft_bucket.arn}/*"
+        ]
       },
       {
         Sid = "DefaultDeny",
