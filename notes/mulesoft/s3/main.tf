@@ -6,6 +6,16 @@ resource "aws_s3_bucket" "mulesoft_bucket" {
   bucket = var.bucket_name
 }
 
+# Block all public access to the S3 bucket
+resource "aws_s3_bucket_public_access_block" "block_public_access" {
+  bucket = aws_s3_bucket.mulesoft_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_iam_role" "mulesoft_assume_role" {
   name = var.iam_role_name
 
